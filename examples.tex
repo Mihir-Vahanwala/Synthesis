@@ -25,13 +25,15 @@ $$
 \phi \equiv (0 < k) \land (k < 35) \land (\exists q_i. 5q_i + i = k) \land (\exists q_j . 7q_j + j = k)
 $$
 \end{example}
-By Chinese remainder theorem, since $5$ and $7$ are coprime and $35 = 5 \cdot 7$, $k$ is uniquely determined by $i, j$.
+By Chinese remainder theorem, since $5$ and $7$ are coprime and $35 = 5 \cdot 7$, $k$ is uniquely determined by $i, j$: $k \equiv 21i + 15j \mod 35$
 
 A clause that expresses coprimality of constants $c_1, c_2$ is 
 $$
 \exists q_1, q_2 . ~c_1q_1 + c_2 q_2 = 1
 $$
 It is from these $q_1, q_2$ that we can conclude about ``multiplicative inverses" modulo an integer, and use them in synthesis expressions that support modulo arithmetic.
+
+In particular, $c_1 q_1 \equiv 1 \mod c_2$ and $0 \mod c_1$ and vice versa.
 
 \textbf{From these two examples, it is evident our synthesis expressions must support modulo arithmetic.}
 \end{document}
