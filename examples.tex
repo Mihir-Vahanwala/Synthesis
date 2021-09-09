@@ -36,4 +36,13 @@ It is from these $q_1, q_2$ that we can conclude about ``multiplicative inverses
 In particular, $c_1 q_1 \equiv 1 \mod c_2$ and $0 \mod c_1$ and vice versa.
 
 \textbf{From these two examples, it is evident our synthesis expressions must support modulo arithmetic.}
+
+The following is a very elementary question
+\begin{question}[Coprimality]
+Let $c_1, c_2$ be arbitrary constants, and let $\psi$ be the sentence
+$$
+\exists q_1, q_2, r_1, r_2 .(0 < q_1, r_1 < c_2) \land (0 < q_2, r_2 < c_1) \land (c_1q_1 - c_2q_2 = 1) \land (c_1r_1 - c_2r_2 = 0)
+$$
+In our logic, is $\neg \psi$ a theorem, or should it be an axiom?
+\end{question}
 \end{document}
