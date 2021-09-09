@@ -10,7 +10,7 @@
 Given a PA formula $\phi(i, j, \dots)$ such that for all $i$, there exists a unique $j$ such that $\phi$ holds. Can we explicitly express $j$ in terms of $i$, given a proof of this dependence?
 \end{question}
 
-\begin{example}
+\begin{example}[Squaring in cyclic group]
 Consider $$\phi \equiv (0 < i) \land (0 < j) \land (i < 9) \land (j < 9) \land (\exists q. i - 2j -9q = 0)$$
 \end{example}
 This is a \emph{permutation} over $\{1, \dots, 8\}$: we have that whenever $\phi(i, j)$ holds, $i \equiv 2j \mod 9$, $j \equiv 5i \mod 9$
@@ -18,4 +18,20 @@ This is a \emph{permutation} over $\{1, \dots, 8\}$: we have that whenever $\phi
 A proof of uniqueness of $j$ for a given $i$ would proceed by contradiction, eliminating $i$ and then using the fact $9$ divides $2(j' - j)$ and that $2$ and $9$ are coprime, and that $-9 <  j - j' < 9$ 
 
 To capture this example, our calculus somehow would need to support division with remainder, and even then, getting the explicit expression from a proof of uniqueness might be tricky...
+
+\begin{example}[Chinese Remaindering]
+Let
+$$
+\phi \equiv (0 < k) \land (k < 35) \land (\exists q_i. 5q_i + i = k) \land (\exists q_j . 7q_j + j = k)
+$$
+\end{example}
+By Chinese remainder theorem, since $5$ and $7$ are coprime and $35 = 5 \cdot 7$, $k$ is uniquely determined by $i, j$.
+
+A clause that expresses coprimality of constants $c_1, c_2$ is 
+$$
+\exists q_1, q_2 . ~c_1q_1 + c_2 q_2 = 1
+$$
+It is from these $q_1, q_2$ that we can conclude about ``multiplicative inverses" modulo an integer, and use them in synthesis expressions that support modulo arithmetic.
+
+\textbf{From these two examples, it is evident our synthesis expressions must support modulo arithmetic.}
 \end{document}
