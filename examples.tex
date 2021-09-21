@@ -45,4 +45,22 @@ $$
 $$
 In our logic, is $\neg \psi$ a theorem, or should it be an axiom?
 \end{question}
+
+\section{What can PA Synthesize?}
+\begin{definition}[Well-behaved function, univariate]
+A function $$f: \mathbb{Z} \rightarrow \mathbb{Z} \cup \{\bot\}$$ is said to be well behaved, if there exists $c \in \mathbb{N}$, and functions $f_0, f_1, \dots, f_{c-1}$, which are either linear over $\mathbb{Z}$, or identically $\bot$, such that for all but finitely many $x \in \mathbb{Z}$, $f(x) = f_r(x)$, where $x \equiv r \mod c$
+\end{definition}
+
+\begin{definition}[Implicitly defined, univariate]
+Let $\phi(x, y)$ be a PA formula. We say that $\phi$ implicitly defines a function $f: \mathbb{Z} \rightarrow \mathbb{Z} \cup \{\bot\}$, if for all $x$, there is at most one $y$ for which $\phi(x, y)$ holds. $f(x) = y$, if there is a $y$ such that $\phi$ holds, and $f(x) = \bot$ otherwise.
+\end{definition}
+
+\begin{question}[Characterisation, univariate]
+Does the following hold?
+
+A function is well behaved if and only if it is implicitly defined by a PA formula.
+\end{question}
+
+It is straightforward to prove that a PA formula can be constructed from a well behaved function (hint: use divisibility predicate, the constant divisor is period $c$), but the other direction seems more profound.
+
 \end{document}
