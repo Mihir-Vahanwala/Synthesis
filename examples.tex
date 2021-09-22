@@ -48,7 +48,7 @@ In our logic, is $\neg \psi$ a theorem, or should it be an axiom?
 
 \section{What can PA Synthesize?}
 \begin{definition}[Well-behaved function, univariate]
-A function $$f: \mathbb{Z} \rightarrow \mathbb{Z} \cup \{\bot\}$$ is said to be well behaved, if there exists $c \in \mathbb{N}$, and functions $f_0, f_1, \dots, f_{c-1}$, which are either linear over $\mathbb{Z}$, or identically $\bot$, such that for all but finitely many $x \in \mathbb{Z}$, $f(x) = f_r(x)$, where $x \equiv r \mod c$
+A function $$f: \mathbb{Z} \rightarrow \mathbb{Z} \cup \{\bot\}$$ is said to be well behaved, if $\integers$ can be partitioned into finitely many intervals, such that for each interval $\interval$, there exists $c_\interval \in \mathbb{N}$, and functions $f_{\interval,0}, f_{\interval,1}, \dots, f_{\interval,c-1}$, which are either linear over $\mathbb{Z}$, or identically $\bot$, such that for all $x \in \interval$, $f(x) = f_{\interval,r}(x)$, where $x \equiv r \mod c_\interval$
 \end{definition}
 
 \begin{definition}[Implicitly defined, univariate]
