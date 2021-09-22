@@ -2,6 +2,8 @@
 
 \input{macros.tex}
 
+\newcommand{\bnalt}{\Bigm\vert}
+
 \begin{document}
 
 \section{Defining the problem}
@@ -63,4 +65,38 @@ A function is well behaved if and only if it is implicitly defined by a PA formu
 
 It is straightforward to prove that a PA formula can be constructed from a well behaved function (hint: use divisibility predicate, the constant divisor is period $c$), but the other direction seems more profound.
 
+\subsection{Proposed Normal Form for PA formulae}
+
+In order to prove the harder direction, which seems intrinsically related to the very power of PA, the following grammar may be useful\footnotemark ($\alpha$ comes from the set of integers, $c$ from the set of common symbols, $x, y, z$ are variables):
+
+\footnotetext{Why? I think because it is easy to synthesise a PA formula of this kind, given a well behaved function.}
+$$
+t ::= \alpha \bnalt c \bnalt x \bnalt \sum \alpha t 
+$$
+$$
+p ::= (t = 0) \bnalt (t < 0) \bnalt \exists z. C
+$$
+$$
+\ell ::= p \bnalt \neg p
+$$
+$$
+C ::= \bigwedge \ell
+$$
+$$
+F ::= \bigvee C
+$$
+Notice that there are many parallels that can be drawn with DNF, except that this \emph{isn't} DNF. Note that the analogue of literals is defined recursively, and hence, the conversion to this normal form also processes literals inductively, from innermost to outermost.
+
+In this form, we insist that if $z$ is quantified, then every subformula in the scope of the quantifier \emph{must} contain $z$. This is not that principled an approach, and might be bad from implementation point of view, because we end up introducing \emph{more} quantifiers. But, the goal of this construction is to demonstrate equivalence.
+
+Without loss of generality, we assume that for every quantification, a fresh variable is used. A way to convert any arbitrary formula to this normal form is:
+\begin{enumerate}
+\item Identify ``literals" $\ell$ as required: recursively replace $\neg\left( \bigwedge \psi \right)$ by $\bigvee \neg \psi$, $\neg\left( \bigvee \psi \right)$ by $\bigwedge\neg \psi$, $\neg \neg \psi$ by $\psi$, $\forall z. \psi$ by $\neg \exists z. \neg \psi$, $\neg \forall z. \psi$ by $\exists z. \neg \psi$
+
+\item At this point, consider the innermost quantified formulae. They are of the form $\exists z. \psi$, where $\psi$ is in NNF, from the previous step. Convert this to DNF, and replace $\exists z. \bigvee_i \psi_i$ by $\bigvee_i \exists z_i. \psi_i$. If $\psi_i$ is independent of $z_i$, drop the quantifier. Finally, reconvert the decomposed formula back to NNF. (if there was a $\neg$ outside $\exists z. \psi$ to begin with, push it in)
+
+\item Apply this procedure inductively to the outer quantifiers too. Here, the ``literals" also include processed quantified formulae from the previous step.
+
+\item Having obtained all quantified subformulae in the right format, distribute, and convert the resulting ``NNF" formula into ``DNF"
+\end{enumerate}
 \end{document}
