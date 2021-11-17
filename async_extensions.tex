@@ -1,0 +1,101 @@
+\documentclass{article}
+
+
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{braket}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{bbm}
+\usepackage{stmaryrd}
+
+\newtheorem{question}{Question}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem{definition}{Definition}[section]
+
+\theoremstyle{remark}
+\newtheorem{construction}{Construction}[section]
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\DeclarePairedDelimiter{\multiset}{\llbracket}{\rrbracket}
+
+\DeclarePairedDelimiter{\transition}{[}{\rangle}
+
+\DeclarePairedDelimiter{\pair}{\langle}{\rangle}
+
+\renewcommand{\P}{\mathsf{P}}
+\newcommand{\NP}{\mathsf{NP}}
+\newcommand{\BQP}{\mathsf{BQP}}
+\newcommand{\pspace}{\mathsf{PSPACE}}
+
+\newcommand{\CFG}{\mathsf{CFG}}
+\newcommand{\nonterminals}{\mathcal{X}}
+\newcommand{\productions}{\mathcal{P}}
+
+\newcommand{\program}{\mathfrak{P}}
+\newcommand{\contexts}{\mathfrak{C}}
+
+\newcommand{\multisets}{\mathbb{M}}
+
+\newcommand{\naturals}{\mathbb{N}}
+\newcommand{\integers}{\mathbb{Z}}
+
+\newcommand{\Parikh}{\mathsf{Parikh}}
+
+\newcommand{\PN}{\mathsf{PN}}
+
+\newcommand{\schedule}[2]{\mathsf{schedule}^{#1}_{#2}}
+\newcommand{\execute}[2]{\mathsf{execute}^{#1}_{#2}}
+\newcommand{\suspend}[2]{\mathsf{suspend}^{#1}_{#2}}
+\newcommand{\yield}[2]{\mathsf{yield}^{#1}_{#2}}
+
+\newcommand{\widgetfam}{\mathcal{N}^{\clubsuit}}
+\newcommand{\widgetnet}[1]{N_{#1}^{\clubsuit}}
+\newcommand{\widgetS}[1]{S_{#1}^{\clubsuit}}
+\newcommand{\widgetT}[1]{T_{#1}^{\clubsuit}}
+\newcommand{\widgetF}[1]{F_{#1}^{\clubsuit}}
+
+\begin{document}
+
+\section{Extension 1: No Synchronous Function Calls, Unbounded Context Switching}
+Denote the finite non-empty sets of global states by $D$ and handler names by $\Sigma$. In this case, an instance of the handler program is finite state, and the run of the program produces a regular language. However, a handler can get context switched out at any point, and hence, in the task buffer, we have to keep track of not just handler instances $\sigma$, but rather instruction labels $\lambda_\sigma^j$ to dispatch. 
+
+Let $\Lambda$ be the set of all instruction labels across all handlers $\sigma$. Each handler also has a special label $\lambda^{end}_\sigma$.  Let $\Lambda^{end}$ be the set of such labels. Denote $\Lambda' = \Lambda \backslash \Lambda^{end}$. A handler is posted by adding $\lambda_\sigma^1$ to the task buffer.
+
+The following can happen (note the non-deterministic choice) if the program is in global state $d$ and the control is at some instruction $\lambda$ in handler code.
+\begin{itemize}
+\item The instruction can be \textbf{executed}, thereby (non-deterministically) changing the global state to $d'$, sending the control to $\lambda'$, and posting $\lambda''$ to the task buffer. Note that posting is optional.
+\item The handler instance is \textbf{suspended} at $\lambda_\sigma^j$ so that it can subsequently yield to the scheduler. In this case, the control jumps to $\lambda_\sigma^{end}$ and an instance of $\lambda_\sigma^j$ is posted to the task buffer.
+\item If $\lambda = \lambda_\sigma^{end}$, then it can only \textbf{yield} to the scheduler.
+\end{itemize}
+
+\begin{construction}
+This is captured by a Boolean Petri Net as follows
+\begin{itemize}
+\item The set of places $S = D \cup \Lambda' \cup (D \times \Lambda)$. $D$ captures global state as seen by the scheduler, $\Lambda'$ models the task buffer, $D \times \Lambda$ models the run of the handler in a scheduled context.
+\item There is at most one marking in the states $D$. Initially, there is one marking in the starting state, and one marking in $\lambda^i_{\sigma}$ where $\sigma$ are the initial posts. To begin with, none of the places $(D \times \Lambda)$ are marked.
+\item The set of transitions $T$ is the union of 
+\begin{itemize}
+\item $\{\schedule{\lambda}{d}\}_{(d, \lambda) \in D \times \Lambda'}$ in state $d$, schedule a handler that was at label $\lambda \in \Lambda'$
+\item $\{\execute{\lambda}{d}\}_{(d, \lambda) \in D \times \Lambda'}$ in state $d$, execute the instruction at label $\lambda \in \Lambda'$. The next instruction $\lambda' \in \Lambda$, next state $d'$ and any posts $\lambda'' \in \Lambda'$ depend on the exact code.
+\item  $\{\suspend{\lambda}{d}\}_{(d, \lambda) \in D \times \Lambda'}$ in state $d$, instead of executing the instruction at label $\lambda \in \Lambda'$, jump to the corresponding $\lambda^{end}\in \Lambda^{end}$, and post $\lambda$ to be scheduled later.
+\item  $\{\yield{\lambda}{d}\}_{(d, \lambda) \in D \times \Lambda^{end}}$ return to the scheduler
+\end{itemize}
+\item These transitions are enabled and fired, according to $F$, given as:
+\begin{itemize}
+\item $F(\schedule{\lambda}{d}) = \pair{\multiset{d, \lambda}, \multiset{(d, \lambda)}}$
+\item $F(\execute{\lambda}{d}) = \pair{\multiset{(d, \lambda)}, \multiset{\lambda'', (d', \lambda')}}$
+\item $F(\suspend{\lambda}{d}) = \pair{\multiset{(d, \lambda)}, \multiset{\lambda, (d, \lambda^{end})}}$
+\item $F(\yield{\lambda}{d}) = \pair{\multiset{(d, \lambda)}, \multiset{d}}$
+\end{itemize}
+\end{itemize}
+\end{construction}
+
+\end{document}
