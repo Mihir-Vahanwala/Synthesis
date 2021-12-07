@@ -98,4 +98,24 @@ This is captured by a Boolean Petri Net as follows
 \end{itemize}
 \end{construction}
 
+\begin{construction}
+This is captured by a Vector Addition System with States (VASS) as follows
+\begin{itemize}
+\item The set $Q$ of states is the same as the set $D$ of global states.
+\item The finite set of transitions $T \subseteq Q \times \integers^{|\Lambda|} \times Q$
+\item The underlying vector models the instruction buffer. The set of transitions is constructed, taking into account what could happen for each instruction $\lambda$, from each state $q$.
+\begin{itemize}
+\item The start state is $q$
+\item The end state $q'$ is the same as the state the instruction takes the program to
+\item Let $t$ be the transition vector $\in \integers^{|\Lambda|}$. It has one entry, one for each instruction label. Let $\lambda'$ be the next instruction the program counter jumps to, and let $\lambda''$ be an instruction that is posted during the execution as an asynchronous call. We construct $t$ as follows:  
+\begin{itemize}
+\item For all $\lambda''' \in \Lambda$, $t(\lambda''') \gets 0$
+\item $t(\lambda) \gets t(\lambda) - 1$
+\item $ t(\lambda') \gets t(\lambda') + 1$
+\item  $t(\lambda'') \gets t(\lambda'') + 1$
+\end{itemize}
+\end{itemize}
+\end{itemize}
+\end{construction}
+
 \end{document}
