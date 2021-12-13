@@ -98,24 +98,28 @@ This is captured by a Boolean Petri Net as follows
 \end{itemize}
 \end{construction}
 
+Vector addition systems with states are equivalent to Petri Nets as a concurrency model, but more amenable to probabilistic semantics. In particular, we can encode an asynchronous program as a 1-VASS-MDP, as described in \cite[Definition 2.2]{abdulla2016qualitative} Reachability in this model is reasoned about with a fragment of $\mu$-calculus, where model checking is decidable.
+
 \begin{construction}
-This is captured by a Vector Addition System with States (VASS) as follows
+An asynchronous program is encoded as a 1-VASS-MDP as follows:
 \begin{itemize}
-\item The set $Q$ of states is the same as the set $D$ of global states.
-\item The finite set of transitions $T \subseteq Q \times \integers^{|\Lambda|} \times Q$
-\item The underlying vector models the instruction buffer. The set of transitions is constructed, taking into account what could happen for each instruction $\lambda$, from each state $q$.
+
+\item The VASS has $|\Lambda|$ counters, one corresponding to each instruction label $\lambda$. Thus, in configurations and transitions, we work with $|\Lambda|$ dimensional vectors. These counters correspond to the task buffer, and keep track of how many instances are to resume execution at label $\lambda$, whenever scheduled.
+\item The partition of states for the probabilistic player, $Q_P$, is the same as the set $D$ of the global states of the program.
+\item The partition of states for the non-deterministic player, $Q_1$ consists of two copies of all pairs in $D \times \Lambda$. They are referred to as $(d, \lambda)_0$ and $(d, \lambda)_1$ 
+\item For every state $d \in Q_P$, there is a transition whose vector is $\mathbf{0}$, to and from every state $(d, \lambda)_0 \in Q_1$. This corresponds to freely scheduling and yielding from an execution.
+\item For all $(d, \lambda)$, there is a transition from $(d, \lambda)_0$ to $(d, \lambda)_1$. The associated vector has $0$ entries everywhere, except for the entry corresponding to $\lambda$, which is $-1$. The intuition behind this is to guard against spurious schedules.
+\item If instruction $\lambda$ changes global state from $d_i$ to $d_f$, posts $\lambda''$ and the control jumps to $\lambda'$, then there is a transition from $(d_i, \lambda)_1$ to $(d_f, \lambda')_0$. If $\lambda$ is a terminal instruction, then the final state is $d_f$ instead. The transition vector $t \in \integers^{|\Lambda|}$ is constructed as follows:
 \begin{itemize}
-\item The start state is $q$
-\item The end state $q'$ is the same as the state the instruction takes the program to
-\item Let $t$ be the transition vector $\in \integers^{|\Lambda|}$. It has one entry, one for each instruction label. Let $\lambda'$ be the next instruction the program counter jumps to, and let $\lambda''$ be an instruction that is posted during the execution as an asynchronous call. We construct $t$ as follows:  
-\begin{itemize}
-\item For all $\lambda''' \in \Lambda$, $t(\lambda''') \gets 0$
-\item $t(\lambda) \gets t(\lambda) - 1$
+\item $t \gets \mathbf{0}$
 \item $ t(\lambda') \gets t(\lambda') + 1$
 \item  $t(\lambda'') \gets t(\lambda'') + 1$
 \end{itemize}
 \end{itemize}
-\end{itemize}
 \end{construction}
+
+\bibliographystyle{plainurl}
+
+\bibliography{async_extensions}
 
 \end{document}
