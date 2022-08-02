@@ -1,0 +1,322 @@
+\documentclass{article}
+
+\title{Liveness for Probabilistic Asynchronous Programs}
+\author{Mihir Vahanwala}
+\date{Autumn 2022}
+
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{braket}
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{bbm}
+\usepackage{stmaryrd}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+\lstset{morekeywords={if,else,post,return,and}}
+
+
+\newtheorem{question}{Question}[section]
+\newtheorem{example}{Example}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{problem}[definition]{Problem}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{lemma}[definition]{Lemma}
+
+\theoremstyle{remark}
+\newtheorem{construction}{Construction}[section]
+
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\DeclarePairedDelimiter{\multiset}{\llbracket}{\rrbracket}
+
+\DeclarePairedDelimiter{\transition}{[}{\rangle}
+
+\DeclarePairedDelimiter{\pair}{\langle}{\rangle}
+
+\renewcommand{\P}{\mathsf{P}}
+\newcommand{\NP}{\mathsf{NP}}
+\newcommand{\BQP}{\mathsf{BQP}}
+\newcommand{\pspace}{\mathsf{PSPACE}}
+
+\newcommand{\CFG}{\mathsf{CFG}}
+\newcommand{\nonterminals}{\mathcal{X}}
+\newcommand{\productions}{\mathcal{P}}
+
+\newcommand{\program}{\mathfrak{P}}
+\newcommand{\contexts}{\mathfrak{C}}
+\newcommand{\machine}{\mathfrak{M}}
+
+\newcommand{\multisets}{\mathbb{M}}
+
+\newcommand{\naturals}{\mathbb{N}}
+\newcommand{\integers}{\mathbb{Z}}
+
+\newcommand{\Parikh}{\mathsf{Parikh}}
+
+\newcommand{\PN}{\mathsf{PN}}
+
+\newcommand{\schedule}[2]{\mathsf{schedule}^{#1}_{#2}}
+\newcommand{\execute}[2]{\mathsf{execute}^{#1}_{#2}}
+\newcommand{\suspend}[2]{\mathsf{suspend}^{#1}_{#2}}
+\newcommand{\yield}[2]{\mathsf{yield}^{#1}_{#2}}
+
+\newcommand{\widgetfam}{\mathcal{N}^{\clubsuit}}
+\newcommand{\widgetnet}[1]{N_{#1}^{\clubsuit}}
+\newcommand{\widgetS}[1]{S_{#1}^{\clubsuit}}
+\newcommand{\widgetT}[1]{T_{#1}^{\clubsuit}}
+\newcommand{\widgetF}[1]{F_{#1}^{\clubsuit}}
+
+\newcommand{\inc}{\mathsf{INC}}
+\newcommand{\jzdec}{\mathsf{JZDEC}}
+\newcommand{\accept}{\mathsf{accept}}
+\newcommand{\reject}{\mathsf{reject}}
+
+\newcommand{\pc}{\mathsf{pc}}
+\newcommand{\lab}{\mathsf{label}}
+\newcommand{\instr}{\mathsf{instr}}
+\newcommand{\nxt}{\mathsf{next}}
+
+\newcommand{\main}{\mathsf{Main}}
+\newcommand{\accflag}{\mathsf{accFlag}}
+\newcommand{\barrier}{\mathsf{barrier}}
+\newcommand{\upshift}{\mathsf{Upshift}}
+\newcommand{\downshift}{\mathsf{Downshift}}
+
+\begin{document}
+\maketitle
+Based on the construction attributed to Prof Rupak Majumdar
+\section{Introduction}
+Asynchronous programming is a paradigm aimed to reduce performance overheads. An expensive function call, rather than being made immediately, can be \textit{posted} to a task buffer, pending later \textit{dispatch} and execution: hence the adjective, \textit{asynchronous}. This strategy aims to mask system latency. Safety and liveness properties for asynchronous programs have been studied in \cite{asyncalgo2012}, by proving them equivalent to Petri Nets. In this discussion, we seek to enrich our understanding of liveness by studying asynchronous programs in the probabilistic setting. In asynchronous programs, the non-determinism chiefly arises from the choice the scheduler has in dispatching the pending calls in the task buffer. Assuming a probabilistic, fair policy to resolve this non-determinism, we describe the undecidability of the almost sure (and almost never) repeated global state reachability problem(s) for asynchronous programs.
+
+The functions that constitute an asynchronous program are known as \textit{handlers}. A handler instance, when removed from the task buffer and run, can post other handler instances to the task buffer, from where the scheduler dispatches to be executed. We assume that: (a) Handler code always terminates, (b) A handler instance is always executed \textit{atomically} from start to finish, (c) In our probabilistic system, the scheduler picks a pending handler instance uniformly at random from the task buffer.
+
+The handler code acts over global state of the asynchronous program, eg. the contents of the registers, memory, etc. We assume that the set of global states is finite. The finite global state, contents of the task buffer, and the changes made to them by the handler code and probabilistic scheduler constitute an infinite state Markov chain.
+
+\section{The Setup}
+In this section, we formally introduce the problems we consider, as well as the computational model we reduce from to show undecidability. 
+
+\subsection{The problems}
+\begin{definition}[Asynchronous Program]
+An asynchronous program $\program$ is given by $\Sigma$, a finite set of terminating handlers. The state space of $\program$ is $\Gamma = D \times \multisets[\Sigma]$, where $D$ is the finite set of global configurations, and $\multisets[\Sigma]$ denotes the multisets over $\Sigma$, and refers to the pending handler instances in the task buffer.
+\end{definition}
+
+\begin{definition}[Transitions and Runs]
+Let $\gamma_0 = (d_0, \mathbf{m_0}), \gamma_1 \in \Gamma$. The transition $\gamma_0 \rightarrow \gamma_1$ is enabled from $\gamma_0$ if
+\begin{itemize}
+\item There is a handler $\sigma \in \mathbf{m_0}$
+\item On executing $\sigma$, the state changes to $\gamma_1$
+\end{itemize}
+A run $\gamma_0 \rightarrow \gamma_1 \rightarrow \gamma_2 \rightarrow \dots$ is a sequence of enabled transitions.
+\end{definition}
+
+We reason about global configurations encountered in runs using LTL. Let $Q \subseteq D$. The LTL formula $Q$ means that the current state $\gamma = (d, \mathbf{m})$ is such that $d \in Q$, $\lozenge Q$ means that eventually a state $\gamma' = (d', \mathbf{m'})$ with $d' \in Q$ is reached, and so on.
+
+\begin{problem}[Almost sure repeated reachability]
+\label{almostsure}
+The almost sure repeated reachability problem asks whether, given $Q \subseteq D$, the probability over all runs $\Pr[\square \lozenge Q] = 1$
+\end{problem}
+
+\begin{problem}[Almost never repeated reachability]
+\label{almostnever}
+The almost never repeated reachability problem asks whether, given $Q \subseteq D$, the probability over all runs $\Pr[\square \lozenge Q] = 0$. Alternately, $\Pr[\neg \square \lozenge Q] = 1$, or $\Pr[\lozenge \square \bar{Q}] = 1$
+\end{problem}
+
+\begin{theorem}[Main Result]
+Problems \ref{almostsure} and \ref{almostnever} for asynchronous programs are undecidable.
+\end{theorem}
+
+\subsection{Counter Machines}
+We now describe a Turing complete model of computation that we will ``simulate'' using asynchronous programs.
+
+\begin{definition}[Counter Machine]
+A counter machine comprises of a finite set of registers, each of which holds a single non-negative integer value, and a sequence of instructions from the following instruction set:
+\begin{itemize}
+\item $\inc(r)$: increments register $r$ by $1$
+\item $\jzdec(r, l)$: jumps to label $l$ if $r = 0$, else decrements $r$ by $1$
+\item $\accept$: halts the computation with an accept outcome
+\item $\reject$: halts the computation with a reject outcome
+\end{itemize}
+\end{definition}
+
+Without loss of generality, we assume that all registers are initialised to $0$.
+
+\begin{theorem}
+Determining acceptance by a counter machine is undecidable.
+\end{theorem}
+
+\section{The Simulation}
+We will now simulate counter machines with asynchronous programs. Owing to the fact that these are different constructs, there are inherent challenges with this, and the simulation cannot be perfectly faithful. Nevertheless, we will show that it can be made accurate enough for asynchronous programs to inherit the undecidability of counter machines. 
+
+\subsection{High level description}
+Naively copying code from counter machine (CM) to asynchronous programs (AP) doesn't work: this is because we require that each of the handlers of an asynchronous program has code that is guaranteed to terminate. Instead, the high level idea is to encode the instruction pointer and acceptance status of the CM in the global state of the AP, and capture the non-negative integer count of each of the CM registers as the number of pending instances of each handler in the AP task buffer. This comes with its own potential pitfall: the AP described above has no mechanism for programatically testing for zero instances in the task buffer. This puts the simulation of $\jzdec$ in jeopardy.
+
+We circumvent this as follows. Given a CM $\machine$, we construct a CM $\machine'$ that runs $\machine$ in an infinite loop, albeit with a budget on $\jzdec$ instructions performed by $\machine$, that increases with each iteration. We then construct an AP $\program$ to simulate $\machine'$. The ingenuity in the construction of $\program$ lies in ensuring that the likelihood of simulating a $\jzdec$ instruction incorrectly is inversely proportional to the square of the number of times a $\jzdec$ has already been simulated. This makes it almost certain that $\program$ makes only finitely many mistakes in simulating a $\jzdec$ instruction of $\machine'$. $\machine'$ in turn, is itself a simulation of $\machine$, and a single round of simulation is always finite, by construction. Thus we can show that, eventually, it is almost certain that $\program$ will run faithful simulations of $\machine$ forever. This allows us to exploit the parallels between the acceptance properties of $\machine$ and the repeated global state reachability of $\program$.
+
+\subsection{The Construction}
+\subsubsection{Original CM to Simulating CM}
+We first describe how to augment $\machine$ to obtain $\machine'$. We need to maintain a budget on how many times a $\jzdec$ instruction can be invoked by $\machine$ in an iteration of simulation. This budget increases with every iteration. For that, we use two fresh registers $r_b$ and $r_b'$. On exceeding the budget, $\machine'$ resets the simulation. We also assume the existence of an otherwise unused register $z$, whose value is always $0$, to perform unconditional jumps with $\jzdec(z, l)$.
+
+In the $i^{th}$ iteration of $\machine'$, the budget for $\jzdec$ instructions by $\machine$ is $i$. Thus, we maintain the invariant $r_b + r_b' = i$, with $r_b$ denoting the number of $\jzdec$ operations still remaining. In the code for $\machine'$, every $\jzdec$ instruction from $\machine$ at label $k$ of the form $\jzdec(r, l)$ is replaced by:
+\begin{align*}
+k &: \jzdec(r_b, l_{rej}) \\
+k' &: \inc(r_b') \\
+k'' &: \jzdec(r, l)
+\end{align*} 
+Here $k', k''$ are fresh labels. At $k$, we jump to the reset code if the budget has run out. We also need to jump to the reset code if the computation of $\machine$ has been terminated by an $\accept$ or a $\reject$. The augmented $\machine'$ itself does not have $\accept$ or $\reject$. Thus, the $\accept$ and $\reject$ instructions at labels $l_{acc}$ and $l_{rej}$ respectively are replaced by $\jzdec(z, l_{reset})$.
+
+We now describe the code at $l_{reset}$. This code needs to increment the budget for the next iteration, replenish $r_b$, reinitialise all other registers, and jump to the first instruction of $\machine$. We show how this is done: for simplicity, we show the reinitialisation of only one $\machine$-register $r$.
+\begin{align*}
+l_{reset} &: \inc(r_b') \\
+l_{reset}^1 &: \jzdec(r_b', l_{reset}^4) \\
+l_{reset}^2 &: \inc(r_b) \\
+l_{reset}^3 &: \jzdec(z, l_{reset}^1) \\
+l_{reset}^4 &: \jzdec(r, l_{reset}^6) \\
+l_{reset}^5 &: \jzdec(z, l_{reset}^4) \\
+l_{reset}^6 &: \jzdec(z, l_{init})
+\end{align*}
+Lines $l_{reset}^1$ through $l_{reset}^3$ flush the count of $r_b'$ into $r_b$; in a similar manner, the subsequent instructions make a loop, decrementing $r$ until it is $0$. Finally, we unconditionally jump to the starting instruction.
+
+\subsubsection{From the Simulating CM to AP}
+Let $\Lambda$ be the set of the finitely many (label, instruction) pairs in the CM $\machine'$. The instruction pointer $\pc \in \Lambda$ points to the immediate next instruction to be executed. $\pc.\lab$ and $\pc.\instr$ respectively refer to the label and instruction components of $\pc$. $\pc.\nxt$ refers to the successor of $\pc$ in the code. In the asynchronous program $\program$, the instruction pointer is one component of the global state. The other two components are the accept flag $\accflag$, and a three valued parameter $\barrier$ that helps in simulating the $\jzdec$ with increasing faithfulness. 
+
+Thus, the set of global states $D = \Lambda \times \{0, 1\} \times \{1, 2, 3\}$. 
+
+Let $\mathcal{R}$ be the set of registers of $\machine'$. Define $\mathfrak{R}$ to be a set of handlers, and a bijection $H$ from $\mathcal{R}$ to $\mathfrak{R}$. 
+
+The set of handlers $\Sigma = \{\main, \upshift, \downshift\} \cup \mathfrak{R}$
+
+For each register $r \in \mathcal{R}$, let $\mathsf{R} \in \mathfrak{R}$ be the corresponding handler $H(r)$. The code for $\mathsf{R}$ is
+\begin{lstlisting}
+if (pc.instr == JZDEC(r, _)){
+	pc = pc.next;
+	post(Downshift);
+}
+else{
+	post(R);
+}
+\end{lstlisting}
+
+The code for $\downshift$ is
+\begin{lstlisting}
+barrier = min(1, barrier - 1);
+post(Downshift)
+\end{lstlisting}
+
+Dually, the code for $\upshift$ is
+\begin{lstlisting}
+barrier = max(3, barrier + 1);
+post(Upshift)
+\end{lstlisting}
+
+The handler $\main$ is responsible for running the simulation. It is 
+\begin{lstlisting}
+if (pc.label == l_acc){
+	accFlag = 1;
+}
+else if (pc.label == l_rej){
+	accFlag = 0;
+}
+if (pc.instr == INC(_)){
+	post(H(_));
+	post(Main);
+	pc = pc.next
+	return;
+}
+if (pc.instr == JZDEC(_, __) and barrier = 3){
+	post(Downshift);
+	post(Main);
+	pc = __;
+	return;
+}
+\end{lstlisting}
+
+The program is initialised with one instance each of $\main$ and $\upshift$. $\pc$ is the starting instruction of $\machine'$, $\accflag= 0$ and $\barrier = 3$
+
+\section{Analysis}
+\subsection{The Markov Chain on barrier}
+We notice that $\upshift$ and $\downshift$ are the only handlers to change the value of $\barrier$. Further, throughout the run of the program, there is always precisely one instance of $\upshift$. However, we maintain that the number of instances $n$ of $\downshift$ is the same as the number of times a $\jzdec$ has been simulated, regardless of faithfulness. This is crucial: the scheduler picks a pending handler instance uniformly at random. At a stage where $n$ simulations of $\jzdec$ have been made, a $\downshift$ is $n$ times more likely to be run than an $\upshift$.
+
+Thus, at this stage, the probabilities of $\barrier$ being $1, 2, 3$ are in the ratio $n^2: n: 1$. This intuitively means that as Upshifts and Downshifts get scheduled, $\barrier = 3$ for $\frac{1}{1+n+n^2}$ of the time, and so on. 
+
+\subsection{Simulation faithfulness}
+It is straightforward to see the direct correspondence between the program counter/instruction pointer and acceptance status with the global state. The counts in each register are supposed to correspond to the number of pending instances of each handler in $\mathfrak{R}$. It is easy to see that the $\inc$ instruction is always executed correctly. However, the $\jzdec$ is prone to errors. 
+
+Consider a point at which the simulation is in agreement with the counting machine, and the current instruction is $\jzdec(r, l)$. If the register $r$ is $0$, then there is no instance of the handler $\mathsf{R}$. Hence, the only way to make progress is via the if-branch in $\main$, which duly makes the correct jump in $\pc$. This progress will indeed eventually be made, because of the fairness property of Markov chains. This is because $\barrier = 3$ with nonzero probability, and $\main$ can also be scheduled simultaneously with nonzero probability when this holds. 
+
+However, the error in simulation may arise if the register $r$ holds a nonzero value. If the handler $\mathsf{R}$ is scheduled, then the simulation proceeds correctly. The only bad case is when the register holds a nonzero value, $\main$ is scheduled, and $\barrier = 3$. As discussed in the previous subsection, the probability for this bad event in the $(n+1)^{st}$ simulation of $\jzdec$ is upper bounded by $\frac{1}{1+n+n^2}$.
+
+\begin{theorem}[Borel-Cantelli Lemma]
+Let $E_1, E_2, \dots$ be a sequence of events in some probability space. If
+$$
+\sum_{n=1}^\infty \Pr[E_n] < \infty
+$$
+then the probability that infinitely many of $\{E_n\}_{n=1}^\infty$ occur is $0$
+\end{theorem}
+
+It is well-known that $\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}$. This immediately implies that it is almost certain that there will only be finitely many erroneous simulations of $\jzdec$ by the asynchronous program.
+
+\subsection{The Reduction}
+In the asynchronous program $\program$ that we constructed, let $A \subset D$ be the set of global states in which $\accflag = 1$. Our main undecidability result is immediate given the following lemma.
+\begin{lemma}
+The following statements are equivalent.
+\begin{enumerate}
+\item The original counter machine $\machine$ accepts
+\item In $\program$, $\Pr[\lozenge \square A] = 1$
+\item In $\program$, $\Pr[\square \lozenge A] = 1$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(2) implies (3) is elementary LTL.
+
+We note that $\program$ is a simulation of $\machine'$, which in turn is a loop of prefixes of runs of the original $\machine$. Over runs of $\program$, consider the LTL formula $F$\footnotemark that holds if: (a) at the last time $pc = l_{init}$, there were no instances of handlers corresponding to the registers of $\machine$, and $r_b$, and (b) since then, there have been no errors in simulating a $\jzdec$ instruction. 
+\footnotetext{In our definition of the problems, we had restricted the scope of LTL formulae to global state only. However, in F, we use LTL formulae to reason about the task buffer as well. The subtlety here is that the extension is only to serve in the analysis, and not in any decision procedure}
+%
+In the previous subsection, we have established that $\Pr[\lozenge\square F] = 1$.
+\footnotemark
+
+\footnotetext{Once decrements begin happening correctly, the next reset to the initial state will ensure (a)} 
+
+We now prove (1) implies (2). \\
+In this case, we assume $\machine$ accepts. It suffices to show that $\lozenge\square F \implies \lozenge\square A$. Indeed, if $\lozenge\square F$ holds, we can identify a witness index for the $\lozenge$. This is the iteration index of $\machine'$ from where runs of $\machine$ are simulated faithfully by $\program$. Let this index be $N_1$. Now, since $\machine$ accepts, the finite accepting run will have some $N_2$ $\jzdec$ operations. Let $N = \max(N_1, N_2)$. From the $N^{th}$ iteration onwards, $\program$ will faithfully simulate a complete accepting run of $\machine$, and hence, $\accflag$ will be set to $1$, and never be changed. Formally, we have proven $\lozenge \square A$.
+
+To complete, we prove (3) implies (1) by contrapositive. \\
+In this case, we assume $\machine$ does not accept. Here again, it suffices to show that $\lozenge\square F \implies \lozenge\square \bar{A}$. This will prove that $\Pr[\square \lozenge A] = 0$. As before, there exists an index $N_1$, from where every iteration of $\machine'$ will be simulated faithfully by $\program$. We also note that every iteration of $\machine'$ is terminated either by reaching the reject label, or by virtue of exceeding the budget. This also holds for the simulation by $\program$ from iteration $N$ onward. Regardless of the reason for termination, $\accflag$ will be set to $0$, and will not be further changed. In other words, $\lozenge\square \bar{A}$ has been established. 
+\end{proof}
+
+\bibliographystyle{plainurl}
+
+\bibliography{async_liveness}
+\end{document}
