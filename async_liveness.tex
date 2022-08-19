@@ -77,11 +77,15 @@
 \newcommand{\program}{\mathfrak{P}}
 \newcommand{\contexts}{\mathfrak{C}}
 \newcommand{\machine}{\mathfrak{M}}
+\newcommand{\net}{\mathfrak{N}}
 
 \newcommand{\multisets}{\mathbb{M}}
 
 \newcommand{\naturals}{\mathbb{N}}
 \newcommand{\integers}{\mathbb{Z}}
+\newcommand{\reals}{\mathbb{R}}
+
+\newcommand{\weight}{\mathsf{weight}}
 
 \newcommand{\Parikh}{\mathsf{Parikh}}
 
@@ -116,20 +120,24 @@
 
 \begin{document}
 \maketitle
-Based on the construction attributed to Prof Rupak Majumdar
+Undecidability construction attributed to Prof Rupak Majumdar
 \section{Introduction}
 Asynchronous programming is a paradigm aimed to reduce performance overheads. An expensive function call, rather than being made immediately, can be \textit{posted} to a task buffer, pending later \textit{dispatch} and execution: hence the adjective, \textit{asynchronous}. This strategy aims to mask system latency. Safety and liveness properties for asynchronous programs have been studied in \cite{asyncalgo2012}, by proving them equivalent to Petri Nets. In this discussion, we seek to enrich our understanding of liveness by studying asynchronous programs in the probabilistic setting. In asynchronous programs, the non-determinism chiefly arises from the choice the scheduler has in dispatching the pending calls in the task buffer. Assuming a probabilistic, fair policy to resolve this non-determinism, we describe the undecidability of the almost sure (and almost never) repeated global state reachability problem(s) for asynchronous programs.
 
-The functions that constitute an asynchronous program are known as \textit{handlers}. A handler instance, when removed from the task buffer and run, can post other handler instances to the task buffer, from where the scheduler dispatches to be executed. We assume that: (a) Handler code always terminates, (b) A handler instance is always executed \textit{atomically} from start to finish, (c) In our probabilistic system, the scheduler picks a pending handler instance uniformly at random from the task buffer.
+The functions that constitute an asynchronous program are known as \textit{handlers}. A handler instance, when removed from the task buffer and run, can post other handler instances to the task buffer, from where the scheduler dispatches to be executed. We assume that: (a) Handler code always terminates, (b) A handler instance is always executed \textit{atomically} from start to finish, (c) In our probabilistic system, the scheduler follows a fixed policy in picking a pending handler instance.
 
 The handler code acts over global state of the asynchronous program, eg. the contents of the registers, memory, etc. We assume that the set of global states is finite. The finite global state, contents of the task buffer, and the changes made to them by the handler code and probabilistic scheduler constitute an infinite state Markov chain.
 
-\section{The Setup}
+\section{Preliminaries}
 In this section, we formally introduce the problems we consider, as well as the computational model we reduce from to show undecidability. 
+
+In the sequel, a multiset $\mathbf{m}$ over a finite set $\Sigma$ is a function $\Sigma \rightarrow \naturals$. $\multisets[\Sigma]$ refers to the set of all multisets over $\Sigma$. Given multisets $\mathbf{m}, \mathbf{m'}$, we say $\mathbf{m} \le \mathbf{m'}$ if for all $\sigma \in \Sigma$, $\mathbf{m}(\sigma) \le \mathbf{m'}(\sigma)$. We overload the addition and subtraction $(+, -)$ operations on multisets to be performed pointwise. $\mathbf{m'} - \mathbf{m}$ is only defined when $\mathbf{m} \le \mathbf{m'}$.
+
+We recall that a Presburger set $Z \subseteq \mathbb{Z}^d$ is one which can be defined in FO($+, \le$).
 
 \subsection{The problems}
 \begin{definition}[Asynchronous Program]
-An asynchronous program $\program$ is given by $\Sigma$, a finite set of terminating handlers. The state space of $\program$ is $\Gamma = D \times \multisets[\Sigma]$, where $D$ is the finite set of global configurations, and $\multisets[\Sigma]$ denotes the multisets over $\Sigma$, and refers to the pending handler instances in the task buffer.
+An asynchronous program $\program$ is given by $D$, a finite set of global states, $\Sigma$, a finite set of terminating handlers, and $\gamma_0$, the initial configuration. The configuration space of $\program$ is $\Gamma = D \times \multisets[\Sigma]$, where the first component denotes global state, and the second refers to the pending handler instances in the task buffer.
 \end{definition}
 
 \begin{definition}[Transitions and Runs]
@@ -153,8 +161,20 @@ The almost sure repeated reachability problem asks whether, given $Q \subseteq D
 The almost never repeated reachability problem asks whether, given $Q \subseteq D$, the probability over all runs $\Pr[\square \lozenge Q] = 0$. Alternately, $\Pr[\neg \square \lozenge Q] = 1$, or $\Pr[\lozenge \square \bar{Q}] = 1$
 \end{problem}
 
-\begin{theorem}[Main Result]
-Problems \ref{almostsure} and \ref{almostnever} for asynchronous programs are undecidable.
+\begin{definition}[Probabilistic Scheduler Policy]
+A probabilistic scheduler policy is a non-decreasing function $\weight: \naturals \rightarrow \reals$ such that $\weight(0) = 0$, and $\weight(n) > 0$ for $n > 0$. Given a configuration $(d, \mathbf{m})$, let $\mathbf{m}(\sigma)$ be the number of pending instances of $\sigma$ in the task buffer. Then, the policy picks handler $\sigma$ with probability $$\frac{\weight(\mathbf{m}(\sigma))}{\sum_{\sigma' \in \Sigma}\weight(\mathbf{m}(\sigma'))}$$
+\end{definition}
+
+
+\begin{theorem}[Main Undecidability Result]
+\label{thm:undec}
+If the scheduler is such that $\weight(n) = \Theta(n^\alpha)$ with $\alpha \in 
+\reals, \alpha > 0$, then Problems \ref{almostsure} and \ref{almostnever} are undecidable.
+\end{theorem}
+
+\begin{theorem}[Main Decidability Result]
+\label{thm:dec}
+If the scheduler is such that $\weight(n) = \Theta(1)$ then Problem \ref{almostsure} is decidable.
 \end{theorem}
 
 \subsection{Counter Machines}
@@ -176,8 +196,27 @@ Without loss of generality, we assume that all registers are initialised to $0$.
 Determining acceptance by a counter machine is undecidable.
 \end{theorem}
 
-\section{The Simulation}
-We will now simulate counter machines with asynchronous programs. Owing to the fact that these are different constructs, there are inherent challenges with this, and the simulation cannot be perfectly faithful. Nevertheless, we will show that it can be made accurate enough for asynchronous programs to inherit the undecidability of counter machines. 
+\subsection{Petri Nets}
+We recall a ubiquitous model of concurrency that precisely captures asynchronous programs. 
+\begin{definition}[Petri Net]
+A Petri Net is a tuple $(S, T, F, \mathbf{m_0})$ where:
+\begin{itemize}
+\item $S$ is a finite non-empty set of places that can hold an unbounded, non-negative number of tokens. A marking $\mathbf{m}$ is a multiset over $S$ that denotes the number of tokens in each place.
+\item $T$ is a finite set (disjoint from $S$) of transitions.
+\item $F$ is a pair of functions $I, O$ from $T$ to $\multisets[S]$. If the current marking is $\mathbf{m}$, a transition $t$ is enabled if $I(t) \le \mathbf{m}$. On firing a transition, the new marking is $(\mathbf{m} - I(t)) + O(t)$.
+\item $\mathbf{m_0}$ is the initial marking.
+\end{itemize}
+\end{definition}
+
+Given a Petri net and a marking $\mathbf{m}$, the \emph{coverability problem} asks whether there exists a marking $\mathbf{m'}$ such that $\mathbf{m'}$ is reachable from the initial marking, and $\mathbf{m} \le \mathbf{m'}$. Such an $\mathbf{m'}$ is called a \emph{cover} of $\mathbf{m}$. The following is standard, owing to the fact that $\le$ is a well-quasi-order over $\multisets[S]$ (an infinite sequence without an increasing pair cannot exist), and that Petri Nets constitute a well-structured transition system.
+
+\begin{lemma}
+\label{lem:cover}
+Let $M$ be the set of all markings from which a cover of $\mathbf{m}$ is reachable. Then, $M$ is upward-closed: i.e. if $\mathbf{m_1} \in M$ and $\mathbf{m_1} \le \mathbf{m_2}$, then $\mathbf{m_2} \in M$. Further, one can compute a finite basis $M_b$ of $M$, i.e. for every marking $\mathbf{m_i} \in M$, there is a marking $\mathbf{m_b} \in M_b$ such that $\mathbf{m_b} \le \mathbf{m_i}$. Consequently, $M$ is a Presburger set whose definition can be computed.
+\end{lemma}
+
+\section{Undecidability: The Simulation}
+We will now prove our undecidability result. We will simulate counter machines with asynchronous programs equipped with a scheduler whose $\weight(n) = \Theta(n^\alpha)$ with $\alpha$ being a strictly positive real number. Owing to the fact that these are different constructs, there are inherent challenges with this, and the simulation cannot be perfectly faithful. Nevertheless, we will show that it can be made accurate enough for asynchronous programs to inherit the undecidability of counter machines. To this end, let $k = \max\left(2, \mathsf{ceil}\left(\frac{2}{\alpha}+1\right)\right)$
 
 \subsection{High level description}
 Naively copying code from counter machine (CM) to asynchronous programs (AP) doesn't work: this is because we require that each of the handlers of an asynchronous program has code that is guaranteed to terminate. Instead, the high level idea is to encode the instruction pointer and acceptance status of the CM in the global state of the AP, and capture the non-negative integer count of each of the CM registers as the number of pending instances of each handler in the AP task buffer. This comes with its own potential pitfall: the AP described above has no mechanism for programatically testing for zero instances in the task buffer. This puts the simulation of $\jzdec$ in jeopardy.
@@ -209,9 +248,11 @@ l_{reset}^6 &: \jzdec(z, l_{init})
 Lines $l_{reset}^1$ through $l_{reset}^3$ flush the count of $r_b'$ into $r_b$; in a similar manner, the subsequent instructions make a loop, decrementing $r$ until it is $0$. Finally, we unconditionally jump to the starting instruction.
 
 \subsubsection{From the Simulating CM to AP}
-Let $\Lambda$ be the set of the finitely many (label, instruction) pairs in the CM $\machine'$. The instruction pointer $\pc \in \Lambda$ points to the immediate next instruction to be executed. $\pc.\lab$ and $\pc.\instr$ respectively refer to the label and instruction components of $\pc$. $\pc.\nxt$ refers to the successor of $\pc$ in the code. In the asynchronous program $\program$, the instruction pointer is one component of the global state. The other two components are the accept flag $\accflag$, and a three valued parameter $\barrier$ that helps in simulating the $\jzdec$ with increasing faithfulness. 
+Let $\Lambda$ be the set of the finitely many (label, instruction) pairs in the CM $\machine'$. The instruction pointer $\pc \in \Lambda$ points to the immediate next instruction to be executed. $\pc.\lab$ and $\pc.\instr$ respectively refer to the label and instruction components of $\pc$. $\pc.\nxt$ refers to the successor of $\pc$ in the code. In the asynchronous program $\program$, the instruction pointer is one component of the global state. The other two components are the accept flag $\accflag$, and a parameter $\barrier$ that helps in simulating the $\jzdec$ with increasing faithfulness. 
 
-Thus, the set of global states $D = \Lambda \times \{0, 1\} \times \{1, 2, 3\}$. 
+Recall that in the scheduler policy, $\weight(n) = \Theta(n^\alpha)$ with $\alpha$ being a strictly positive real number. $\weight$ takes as input the number of pending instances of a handler type, and outputs the relative odds of dispatching the handler type. We also defined $k = \max\left(2, \mathsf{ceil}\left(\frac{2}{\alpha}+1\right)\right)$
+
+The set of global states $D = \Lambda \times \{0, 1\} \times \{1, 2, \dots, k\}$. 
 
 Let $\mathcal{R}$ be the set of registers of $\machine'$. Define $\mathfrak{R}$ to be a set of handlers, and a bijection $H$ from $\mathcal{R}$ to $\mathfrak{R}$. 
 
@@ -236,7 +277,7 @@ post(Downshift)
 
 Dually, the code for $\upshift$ is
 \begin{lstlisting}
-barrier = max(3, barrier + 1);
+barrier = max(k, barrier + 1);
 post(Upshift)
 \end{lstlisting}
 
@@ -254,7 +295,7 @@ if (pc.instr == INC(_)){
 	pc = pc.next
 	return;
 }
-if (pc.instr == JZDEC(_, __) and barrier = 3){
+if (pc.instr == JZDEC(_, __) and barrier = k){
 	post(Downshift);
 	post(Main);
 	pc = __;
@@ -262,20 +303,20 @@ if (pc.instr == JZDEC(_, __) and barrier = 3){
 }
 \end{lstlisting}
 
-The program is initialised with one instance each of $\main$ and $\upshift$. $\pc$ is the starting instruction of $\machine'$, $\accflag= 0$ and $\barrier = 3$
+The program is initialised with one instance each of $\main$ and $\upshift$. $\pc$ is the starting instruction of $\machine'$, $\accflag= 0$ and $\barrier = k$
 
-\section{Analysis}
+\section{Analysis of the Undecidability Simulation}
 \subsection{The Markov Chain on barrier}
-We notice that $\upshift$ and $\downshift$ are the only handlers to change the value of $\barrier$. Further, throughout the run of the program, there is always precisely one instance of $\upshift$. However, we maintain that the number of instances $n$ of $\downshift$ is the same as the number of times a $\jzdec$ has been simulated, regardless of faithfulness. This is crucial: the scheduler picks a pending handler instance uniformly at random. At a stage where $n$ simulations of $\jzdec$ have been made, a $\downshift$ is $n$ times more likely to be run than an $\upshift$.
+We notice that $\upshift$ and $\downshift$ are the only handlers to change the value of $\barrier$. Further, throughout the run of the program, there is always precisely one instance of $\upshift$. However, we maintain that the number of instances $n$ of $\downshift$ is the same as the number of times a $\jzdec$ has been simulated, regardless of faithfulness. This is crucial: at a stage where $n$ simulations of $\jzdec$ have been made, a $\downshift$ is $\Theta(n^\alpha)$ times more likely to be run than an $\upshift$.
 
-Thus, at this stage, the probabilities of $\barrier$ being $1, 2, 3$ are in the ratio $n^2: n: 1$. This intuitively means that as Upshifts and Downshifts get scheduled, $\barrier = 3$ for $\frac{1}{1+n+n^2}$ of the time, and so on. 
+Thus, at this stage, the probabilities of $\barrier$ being $1, 2, \dots, k$ are in the ratio $n^{(k-1)\alpha}: \dots:  n: 1$. This intuitively means that as Upshifts and Downshifts get scheduled, $\barrier = k$ for $\frac{1}{1+n+ \dots n^{(k-1)\alpha}}$ of the time, and so on. 
 
 \subsection{Simulation faithfulness}
 It is straightforward to see the direct correspondence between the program counter/instruction pointer and acceptance status with the global state. The counts in each register are supposed to correspond to the number of pending instances of each handler in $\mathfrak{R}$. It is easy to see that the $\inc$ instruction is always executed correctly. However, the $\jzdec$ is prone to errors. 
 
-Consider a point at which the simulation is in agreement with the counting machine, and the current instruction is $\jzdec(r, l)$. If the register $r$ is $0$, then there is no instance of the handler $\mathsf{R}$. Hence, the only way to make progress is via the if-branch in $\main$, which duly makes the correct jump in $\pc$. This progress will indeed eventually be made, because of the fairness property of Markov chains. This is because $\barrier = 3$ with nonzero probability, and $\main$ can also be scheduled simultaneously with nonzero probability when this holds. 
+Consider a point at which the simulation is in agreement with the counting machine, and the current instruction is $\jzdec(r, l)$. If the register $r$ is $0$, then there is no instance of the handler $\mathsf{R}$. Hence, the only way to make progress is via the if-branch in $\main$, which duly makes the correct jump in $\pc$. This progress will indeed eventually be made, because of the fairness property of Markov chains. This is because $\barrier = k$ with nonzero probability, and $\main$ can also be scheduled simultaneously with nonzero probability when this holds. 
 
-However, the error in simulation may arise if the register $r$ holds a nonzero value. If the handler $\mathsf{R}$ is scheduled, then the simulation proceeds correctly. The only bad case is when the register holds a nonzero value, $\main$ is scheduled, and $\barrier = 3$. As discussed in the previous subsection, the probability for this bad event in the $(n+1)^{st}$ simulation of $\jzdec$ is upper bounded by $\frac{1}{1+n+n^2}$.
+However, the error in simulation may arise if the register $r$ holds a nonzero value. If the handler $\mathsf{R}$ is scheduled, then the simulation proceeds correctly. The only bad case is when the register holds a nonzero value, $\main$ is scheduled, and $\barrier = k$. As discussed in the previous subsection, the probability for this bad event in the $(n+1)^{st}$ simulation of $\jzdec$ is upper bounded by $\frac{1}{n^2}$. (since $(k-1)\alpha \ge 2$, by construction)
 
 \begin{theorem}[Borel-Cantelli Lemma]
 Let $E_1, E_2, \dots$ be a sequence of events in some probability space. If
@@ -288,7 +329,7 @@ then the probability that infinitely many of $\{E_n\}_{n=1}^\infty$ occur is $0$
 It is well-known that $\sum_{n=1}^\infty \frac{1}{n^2} = \frac{\pi^2}{6}$. This immediately implies that it is almost certain that there will only be finitely many erroneous simulations of $\jzdec$ by the asynchronous program.
 
 \subsection{The Reduction}
-In the asynchronous program $\program$ that we constructed, let $A \subset D$ be the set of global states in which $\accflag = 1$. Our main undecidability result is immediate given the following lemma.
+In the asynchronous program $\program$ that we constructed, let $A \subset D$ be the set of global states in which $\accflag = 1$. Our main undecidability result (Theorem \ref{thm:undec}) is immediate given the following lemma.
 \begin{lemma}
 The following statements are equivalent.
 \begin{enumerate}
@@ -315,6 +356,48 @@ In this case, we assume $\machine$ accepts. It suffices to show that $\lozenge\s
 To complete, we prove (3) implies (1) by contrapositive. \\
 In this case, we assume $\machine$ does not accept. Here again, it suffices to show that $\lozenge\square F \implies \lozenge\square \bar{A}$. This will prove that $\Pr[\square \lozenge A] = 0$. As before, there exists an index $N_1$, from where every iteration of $\machine'$ will be simulated faithfully by $\program$. We also note that every iteration of $\machine'$ is terminated either by reaching the reject label, or by virtue of exceeding the budget. This also holds for the simulation by $\program$ from iteration $N$ onward. Regardless of the reason for termination, $\accflag$ will be set to $0$, and will not be further changed. In other words, $\lozenge\square \bar{A}$ has been established. 
 \end{proof}
+
+\section{The Decidable Case}
+In this section, we consider schedulers that assign constant weight to each handler type, independent of the number of pending instances. We show that this makes almost sure repeated reachability decidable, by casting asynchronous programs as Petri Nets. Given an asynchronous program $\program = (D, \Sigma, \gamma_0)$, we construct a Petri Net $\net = (S, T, F, \mathbf{m_0})$ as follows:
+\begin{itemize}
+\item The set of places $S = D \cup \Sigma$. A token in $d \in D$ indicates that the global state is $d$, a token in $\sigma \in \Sigma$ indicates that there is a pending instance of handler $\sigma$.
+\item The set of transitions $T = D \times \Sigma$. Transition $(d, \sigma)$ captures the behaviour of $\program$ when $\sigma$ is executed from $d$. Thus, $F$ is defined accordingly.
+\item $\mathbf{m_0}$ is deduced from $\gamma_0$ following the construction of $S$.
+\end{itemize}
+
+The coverability problem for Petri Nets is at the heart of our decision procedure, hence we recall the crucial Lemma \ref{lem:cover}, with a slight modification here.
+
+\begin{lemma}
+\label{lem:cover2}
+Let $M_t$ be a finite set of incomparable markings. Let $M$ be the set of all markings from which a cover of some $\mathbf{m_t} \in M_t$ is reachable. Then, $M$ is upward-closed: i.e. if $\mathbf{m_1} \in M$ and $\mathbf{m_1} \le \mathbf{m_2}$, then $\mathbf{m_2} \in M$. Further, one can compute a finite basis $M_b$ of $M$, i.e. for every marking $\mathbf{m_i} \in M$, there is a marking $\mathbf{m_b} \in M_b$ such that $\mathbf{m_b} \le \mathbf{m_i}$. Consequently, $M$ is a Presburger set whose definition can be computed.
+\end{lemma}
+
+In order to reason about the repeated reachability of $Q \subseteq D$, we must query the coverability of the following $M_t$: markings that have exactly one token in a place $q \in Q$, and exactly one token in a place $\sigma \in \Sigma$. The former ensures that the target state is reached, the latter ensures that there is no deadlock.
+
+Petri Nets constitute a WSTS: hence the finite representation $M_b$ of the set $M$ can be computed from a breadth first backward reachability search. This is guaranteed to terminate in finitely many iterations $n_0$. This means that from any configuration in $M$, there is a path to a cover of some $\mathbf{m_t} \in M_t$ that has length at most $n_0$. The scheduler assigns constant weights to handlers. Thus, given any enabled path of length at most $n_0$, the probability that it is taken has a lower bound. Consequently, given a run that stays in $M$ forever, courtesy the strong fairness of Markov chains, it is almost certain that it visits a cover of a configuration in $M_t$ infinitely often. 
+
+This proves the if direction of the following lemma; the converse follows from the fact that $M$ is the complete set of markings from which a cover is reachable.
+
+\begin{lemma}
+\label{lem:special}
+$\Pr[\square \lozenge Q] = 1$ if and only if $\bar{M}$ is not reachable. 
+\end{lemma}
+
+We have that $M$ is a Presburger set, hence, so is its complement $\bar{M}$. It suffices to decide the reachability of a Presburger set. For this, we appeal to the following remarkable result from \cite[Section 9]{vassreach2012}. By immediate successor, we mean a marking that can be reached via a single transition from the current configuration.
+
+\begin{lemma}
+\label{lem:magic}
+Let $X$ and $Y$ be disjoint Presburger sets of markings such that there is no path from a configuration in $X$ to a configuration in $Y$. Then, there exists a set $X'$ disjoint from $Y$, such that $X \subseteq X'$, and the set of immediate successors of $X'$ is contained in $X'$.
+\end{lemma}
+
+Thus, to decide the reachability of the Presburger set $\bar{M}$ from $\{\mathbf{m_0}\}$, we do the following in tandem, exactly one of which is guaranteed to terminate:
+\begin{itemize}
+\item Enumerate paths starting from $\mathbf{m_0}$ until a configuration in $\bar{M}$ is encountered.
+\item Enumerate Presburger sets of markings (i.e. the countably infinite FO formulae) until a set satisfying the properties in Lemma \ref{lem:magic} is found. Note that for such a set, no element can have a path to $\bar{M}$.
+\end{itemize}
+
+\section{Future Work}
+We have established the undecidability of both the almost sure and almost never repeated reachability problems when the scheduler weighs a handler polynomially in the number of pending instances. When the weight becomes constant, the almost sure problem becomes decidable. However, determining the status of the almost never problem is a direction for future work. Likewise, both the almost sure and almost never repeated reachability problems with a scheduler that assigns logarithmic weights are open.
 
 \bibliographystyle{plainurl}
 
